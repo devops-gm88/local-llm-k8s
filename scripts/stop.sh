@@ -2,6 +2,7 @@
 # Shut the VM down but keep it (and the model cache) for next time.
 set -euo pipefail
 . "$(dirname "$0")/lib.sh"
+require_lima
 if vm_running; then
   "$LIMACTL" stop "$VM_NAME"
 else

@@ -3,6 +3,7 @@
 # No Docker on the Mac: the VM's nerdctl + buildkit does the build.
 set -euo pipefail
 . "$(dirname "$0")/lib.sh"
+require_lima
 
 IMAGE="${GATEWAY_IMAGE:-local-llm-k8s/gateway:dev}"
 CTX="$REPO_ROOT/gateway"

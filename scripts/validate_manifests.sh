@@ -1,11 +1,23 @@
 #!/usr/bin/env bash
-# Render every overlay and validate it with kubeconform. CI runs this too.
+# Render every overlay and validate it with kubeconform.
+# Deliberately standalone: CI runs this on a runner with kubectl and
+# kubeconform but no Lima, so it must not source scripts/lib.sh.
 set -euo pipefail
-. "$(dirname "$0")/lib.sh"
 
-KUBECONFORM="${KUBECONFORM:-}"
-if [ -z "$KUBECONFORM" ]; then
-  KUBECONFORM="$(pick_bin kubeconform "$REPO_ROOT/.tools/bin/kubeconform")"
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+if [ -z "${KUBECTL:-}" ]; then
+  if [ -x "$REPO_ROOT/.tools/bin/kubectl" ]; then
+    KUBECTL="$REPO_ROOT/.tools/bin/kubectl"   # local checkout, no PATH needed
+  else
+    KUBECTL="kubectl"                          # CI installs it on PATH
+  fi
+fi
+KUBECONFORM="${KUBECONFORM:-${REPO_ROOT}/.tools/bin/kubeconform}"
+
+command -v "$KUBECTL" >/dev/null 2>&1 || { echo "error: kubectl not found" >&2; exit 1; }
+if [ ! -x "$KUBECONFORM" ] && ! command -v "$KUBECONFORM" >/dev/null 2>&1; then
+  echo "error: kubeconform not found. Run 'make tools' or install it." >&2
+  exit 1
 fi
 
 tmpdir="$(mktemp -d)"

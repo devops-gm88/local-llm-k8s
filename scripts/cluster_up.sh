@@ -3,6 +3,7 @@
 # Idempotent: safe to re-run.
 set -euo pipefail
 . "$(dirname "$0")/lib.sh"
+require_lima
 
 # Render the committed VM definition with this clone's path so the VM mounts
 # the same repo the host is working in.

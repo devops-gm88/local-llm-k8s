@@ -21,14 +21,29 @@ else
   rm -f "${HOME}/.local-llm-k8s-write-test"
 fi
 
+# Optional discovery: sourcing this file must work on a GitHub runner that has
+# kubectl but no Lima, so a missing binary is empty here and checked by the
+# scripts that actually need it.
 pick_bin() {
   local name="$1"; shift
   for candidate in "$@"; do
     if [ -x "$candidate" ]; then echo "$candidate"; return 0; fi
   done
-  if command -v "$name" >/dev/null 2>&1; then command -v "$name"; return 0; fi
-  echo "error: '$name' not found. Run 'make tools' or install it." >&2
-  return 1
+  command -v "$name" 2>/dev/null || true
+}
+
+require_lima() {
+  if [ -z "${LIMACTL:-}" ]; then
+    echo "error: limactl not found. Run 'make tools' or install Lima." >&2
+    exit 1
+  fi
+}
+
+require_kubectl() {
+  if [ -z "${KUBECTL:-}" ]; then
+    echo "error: kubectl not found. Run 'make tools' or install kubectl." >&2
+    exit 1
+  fi
 }
 
 LIMACTL="$(pick_bin limactl "$REPO_ROOT/.tools/bin/limactl" /opt/homebrew/bin/limactl /usr/local/bin/limactl)"
@@ -56,6 +71,7 @@ vm_ip() {
 }
 
 need_kubeconfig() {
+  require_kubectl
   if [ ! -s "$KUBECONFIG" ]; then
     echo "error: no kubeconfig at $KUBECONFIG. Run 'make up' first." >&2
     exit 1
