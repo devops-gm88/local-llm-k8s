@@ -1,0 +1,18 @@
+# NodePort exists so the host can benchmark the real Service path
+# (kube-proxy -> endpoints) instead of a kubectl port-forward.
+apiVersion: v1
+kind: Service
+metadata:
+  name: gateway-nodeport
+  labels:
+    app.kubernetes.io/name: gateway
+    app.kubernetes.io/part-of: local-llm-k8s
+spec:
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: gateway
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      nodePort: 30080

@@ -1,0 +1,43 @@
+# Lima config for the local k3s node. `make up` substitutes __REPO_ROOT__ and
+# starts this file; it is the single source of truth for VM size.
+#
+# Sized for a 16 GB Mac: 6 GiB guest + 4 vCPU, leaving ~8 GB for macOS.
+minimumLimaVersion: 2.0.0
+vmType: vz
+arch: aarch64
+
+# Pinned Ubuntu 26.04 LTS cloud image (arm64), digest-verified.
+images:
+  - location: "https://cloud-images.ubuntu.com/releases/resolute/release-20260927/ubuntu-26.04-server-cloudimg-arm64.img"
+    arch: "aarch64"
+    digest: "sha256:63a93bd5a8d76e33b15ceb5daa3657bd79be804748051ab178e643b0f5da22e7"
+
+cpus: 4
+memory: "6GiB"
+disk: "20GiB"
+
+# Required on Ubuntu 26.04: Lima's first-boot NIC rename (eth0) can fail
+# (LP: #2136392). Without this, systemd-networkd-wait-online blocks boot for
+# 120 s and sshd never comes up. Lima's cidata bootcmd does the rename instead.
+param:
+  internal_netplanOptional: "true"
+
+# Lima's standard read-only home mount. Nothing in this build depends on it.
+mounts:
+  - location: "~"
+
+# Lima's default vz network is NAT: the host cannot reach the guest IP.
+# Everything the host needs is therefore forwarded explicitly.
+portForwards:
+  - guestPort: 6443    # k3s API server
+    hostPort: 6443
+  - guestPort: 30080   # gateway NodePort, used by make demo / make bench
+    hostPort: 30080
+
+# The gateway build context is copied into the VM by scripts/build_gateway.sh
+# rather than shared, so the VM never sees the rest of the host filesystem.
+
+# k3s brings its own containerd; Lima's is not needed.
+containerd:
+  system: false
+  user: false

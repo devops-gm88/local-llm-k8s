@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# Portable core: runs on any cluster. The weights volume is an emptyDir here,
+# so the local overlay MUST be used for real deployments.
+namespace: llm
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - ollama-deployment.yaml
+  - ollama-service.yaml
+  - gateway-deployment.yaml
+  - gateway-service.yaml
+  - gateway-hpa.yaml

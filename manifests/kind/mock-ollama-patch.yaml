@@ -1,0 +1,26 @@
+# CI only: replace the real Ollama workload with a deterministic mock.
+# Everything else (Services, probes, resources, selectors, HPA) stays as shipped.
+- op: replace
+  path: /spec/template/spec/containers/0/image
+  value: local-llm-k8s/mock-ollama:ci
+- op: replace
+  path: /spec/template/spec/containers/0/imagePullPolicy
+  value: Never
+- op: replace
+  path: /spec/template/spec/containers/0/command
+  value: ["python3", "/app/mock_ollama.py"]
+- op: remove
+  path: /spec/template/spec/initContainers
+- op: remove
+  path: /spec/template/spec/containers/0/volumeMounts
+- op: remove
+  path: /spec/template/spec/volumes
+- op: replace
+  path: /spec/template/spec/containers/0/resources
+  value:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi

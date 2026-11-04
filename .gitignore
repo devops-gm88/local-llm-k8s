@@ -1,0 +1,10 @@
+# local tooling / VM state (never committed)
+.tools/
+.lima/
+.home/
+.kube/
+.venv/
+__pycache__/
+*.pyc
+bench/*.tmp
+.DS_Store

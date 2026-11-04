@@ -1,0 +1,118 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama
+  labels:
+    app.kubernetes.io/name: ollama
+    app.kubernetes.io/part-of: local-llm-k8s
+spec:
+  replicas: 1
+  # Only one pod may write the weights volume; recreate rather than overlap.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ollama
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: ollama
+    spec:
+      # Pull the model into the cache volume before the server starts serving.
+      # Idempotent: a cached model is verified, not re-downloaded.
+      initContainers:
+        - name: pull-model
+          image: ollama/ollama:0.40.14
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -eu
+              ollama serve &
+              server_pid=$!
+              for _ in $(seq 1 90); do
+                if ollama list >/dev/null 2>&1; then break; fi
+                sleep 2
+              done
+              ollama pull "${OLLAMA_MODEL}"
+              kill "$server_pid" 2>/dev/null || true
+          env:
+            - name: OLLAMA_HOST
+              value: "127.0.0.1:11434"
+            - name: OLLAMA_MODEL
+              valueFrom:
+                configMapKeyRef:
+                  name: llm-config
+                  key: OLLAMA_MODEL
+          volumeMounts:
+            - name: model-cache
+              mountPath: /root/.ollama
+          resources:
+            requests:
+              cpu: "500m"
+              memory: 512Mi
+            limits:
+              cpu: "2000m"
+              memory: 2Gi
+      containers:
+        - name: ollama
+          image: ollama/ollama:0.40.14
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 11434
+          env:
+            - name: OLLAMA_HOST
+              value: "0.0.0.0:11434"
+            - name: OLLAMA_MODEL
+              valueFrom:
+                configMapKeyRef:
+                  name: llm-config
+                  key: OLLAMA_MODEL
+            - name: OLLAMA_KEEP_ALIVE
+              valueFrom:
+                configMapKeyRef:
+                  name: llm-config
+                  key: OLLAMA_KEEP_ALIVE
+            - name: OLLAMA_NUM_PARALLEL
+              valueFrom:
+                configMapKeyRef:
+                  name: llm-config
+                  key: OLLAMA_NUM_PARALLEL
+            - name: OLLAMA_MAX_LOADED_MODELS
+              valueFrom:
+                configMapKeyRef:
+                  name: llm-config
+                  key: OLLAMA_MAX_LOADED_MODELS
+          # Readiness: the HTTP API answers AND the model is resident in memory.
+          readinessProbe:
+            httpGet:
+              path: /api/tags
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 12
+          # Liveness: the process is wedged only if the API stops answering.
+          livenessProbe:
+            httpGet:
+              path: /api/tags
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 4
+          resources:
+            requests:
+              cpu: "1000m"
+              memory: 1Gi
+            limits:
+              cpu: "3000m"
+              memory: 3Gi
+          volumeMounts:
+            - name: model-cache
+              mountPath: /root/.ollama
+      volumes:
+        # Provided by the local overlay (PVC) and replaced by emptyDir in kind CI.
+        - name: model-cache
+          emptyDir: {}

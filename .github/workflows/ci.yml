@@ -1,0 +1,82 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  manifests:
+    name: manifests (kustomize + kubeconform)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-kubectl@v4
+        with:
+          version: v1.34.0
+      - name: Install kubeconform
+        run: |
+          curl -sSLo kubeconform.tar.gz https://github.com/yannh/kubeconform/releases/download/v0.7.0/kubeconform-linux-amd64.tar.gz
+          tar xf kubeconform.tar.gz kubeconform
+          sudo install -m 0755 kubeconform /usr/local/bin/kubeconform
+      - name: Render and validate both overlays
+        run: ./scripts/validate_manifests.sh
+
+  gateway-tests:
+    name: gateway unit tests
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install and run tests
+        run: |
+          pip install --quiet -r gateway/requirements-dev.txt
+          cd gateway && python -m pytest -q tests
+
+  kind-smoke:
+    name: kind smoke test (real manifests, mocked model)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build the two images
+        run: |
+          docker build -t local-llm-k8s/gateway:ci gateway
+          docker build -t local-llm-k8s/mock-ollama:ci ci/mock
+      - uses: helm/kind-action@v1
+        with:
+          cluster_name: llm-ci
+      - name: Load images into kind
+        run: |
+          kind load docker-image local-llm-k8s/gateway:ci --name llm-ci
+          kind load docker-image local-llm-k8s/mock-ollama:ci --name llm-ci
+      - name: Apply manifests and wait for rollout
+        run: |
+          kubectl apply -k manifests/kind
+          kubectl -n llm rollout status deployment/ollama --timeout=180s
+          kubectl -n llm rollout status deployment/gateway --timeout=180s
+      - name: Smoke test /ask through the Service
+        run: |
+          kubectl -n llm port-forward svc/gateway 18080:80 >/tmp/pf.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:18080/healthz >/dev/null 2>&1; then break; fi
+            sleep 1
+          done
+          curl -fsS -X POST http://127.0.0.1:18080/ask \
+            -H 'content-type: application/json' \
+            -d '{"question":"2+2?","max_tokens":16}' > /tmp/ask.json
+          cat /tmp/ask.json
+          python3 - <<'PY'
+          import json
+          body = json.load(open("/tmp/ask.json"))
+          assert body["answer"].startswith("MOCK["), body
+          assert body["usage"]["completion_tokens"] == 8, body
+          print("smoke test passed:", body["answer"], body["timings"])
+          PY

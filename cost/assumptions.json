@@ -1,0 +1,83 @@
+{
+  "_comment": "Every input to the break-even model. 'verified' means the number was read from the source URL on the stated date. 'assumption' means it is a modelling choice, not a quote, and the sensitivity table shows what happens when it moves.",
+  "api": {
+    "currency": "USD",
+    "unit": "per 1M tokens",
+    "fetched": "2026-11-04",
+    "models": [
+      {
+        "vendor": "OpenAI",
+        "model": "gpt-6-luna",
+        "input_per_1m": 0.10,
+        "output_per_1m": 0.50,
+        "kind": "verified",
+        "source": "https://developers.openai.com/api/docs/pricing"
+      },
+      {
+        "vendor": "OpenAI",
+        "model": "gpt-5.4-nano",
+        "input_per_1m": 0.20,
+        "output_per_1m": 1.25,
+        "kind": "verified",
+        "source": "https://developers.openai.com/api/docs/pricing"
+      },
+      {
+        "vendor": "OpenAI",
+        "model": "gpt-4o-mini",
+        "input_per_1m": 0.15,
+        "output_per_1m": 0.60,
+        "kind": "verified",
+        "source": "https://developers.openai.com/api/docs/pricing"
+      },
+      {
+        "vendor": "Anthropic",
+        "model": "Claude Haiku 4.5",
+        "input_per_1m": 1.00,
+        "output_per_1m": 5.00,
+        "kind": "verified",
+        "source": "https://claude.com/pricing"
+      }
+    ],
+    "note": "Standard on-demand list prices, no batch or cached discounts. The cheapest complete small-model pair is used as the headline comparator because self-hosting a 0.5B model cannot be compared to a frontier model."
+  },
+  "gpu_rental": {
+    "currency": "USD",
+    "fetched": "2026-11-04",
+    "offers": [
+      {
+        "provider": "RunPod",
+        "instance": "L4 24GB (secure cloud, on-demand)",
+        "usd_per_hour": 0.44,
+        "kind": "verified",
+        "source": "https://api.runpod.io/graphql gpuTypes.lowestPrice.uninterruptablePrice"
+      },
+      {
+        "provider": "Scaleway",
+        "instance": "L4-1-24G (8 vCPU, 48 GB RAM, PAR-1, before tax)",
+        "eur_per_hour": 0.79,
+        "kind": "verified",
+        "source": "https://www.scaleway.com/en/pricing/gpu/"
+      }
+    ],
+    "note": "RunPod is used in the USD model. Scaleway is listed as a second data point in EUR, not converted, so no exchange-rate assumption is hidden."
+  },
+  "owned_hardware": {
+    "capex_usd": 2500,
+    "amortization_months": 36,
+    "power_watts": 400,
+    "electricity_usd_per_kwh": 0.13,
+    "kind": "assumption",
+    "source": "modelling choice: a used/consumer desktop with a 24 GB GPU, 3-year straight-line, load power, Ontario residential average electricity. Not a quote."
+  },
+  "rented_node_overhead_pct": 20,
+  "owned_node_overhead_pct": 20,
+  "hours_per_month": 730,
+  "seconds_per_month": 2592000,
+  "measured_power_watts": 35,
+  "measured_power_kind": "assumption",
+  "measured_power_source": "modelling choice: M4 under mixed CPU load. Does not change the conclusion; it is a few dollars a month.",
+  "gpu_throughput_assumptions_tokens_per_second": [200, 500, 1000, 2000, 4000, 8000],
+  "headline_gpu_throughput_tokens_per_second": 1000,
+  "gpu_throughput_kind": "assumption",
+  "gpu_throughput_source": "NOT measured in this project. A 0.5B model on an L4 class GPU is assumed to sustain 1000 output tokens/second aggregate across concurrent requests. Break-even scales linearly with this number; the sensitivity table is the honest part."
+}

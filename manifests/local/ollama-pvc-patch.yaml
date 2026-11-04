@@ -1,0 +1,15 @@
+# Bind the model cache to the PVC instead of the portable emptyDir default.
+# $patch: replace is required: a plain strategic merge would try to give the
+# volume both an emptyDir and a persistentVolumeClaim, which the API rejects.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama
+spec:
+  template:
+    spec:
+      volumes:
+        - name: model-cache
+          $patch: replace
+          persistentVolumeClaim:
+            claimName: ollama-models
