@@ -69,10 +69,11 @@ gateway_token() {
 }
 
 gateway_url() {
-  local vm_ip
-  vm_ip="$(cat "$VM_IP_FILE" 2>/dev/null || true)"
-  if [ -n "$vm_ip" ] && curl -fsS --max-time 2 "http://${vm_ip}:30080/healthz" >/dev/null 2>&1; then
-    echo "http://${vm_ip}:30080"
+  # Lima forwards the NodePort to the host, so this exercises the real
+  # Service path (kube-proxy -> endpoints) instead of a port-forward through
+  # the API server, which would sit in the measured path.
+  if curl -fsS --max-time 2 "http://127.0.0.1:30080/healthz" >/dev/null 2>&1; then
+    echo "http://127.0.0.1:30080"
   elif [ -n "${GATEWAY_BASE_URL:-}" ]; then
     echo "$GATEWAY_BASE_URL"
   else

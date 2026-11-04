@@ -1,0 +1,369 @@
+{
+  "generated_from": {
+    "bench_results": "bench/results.json",
+    "bench_generated_at": "2026-11-04T19:21:53+00:00"
+  },
+  "measured": {
+    "best_tokens_per_second_wall": 107.09,
+    "best_run": {
+      "replicas": 4,
+      "concurrency": 10
+    },
+    "input_token_share": 0.5455,
+    "output_token_share": 0.4545,
+    "worst_tokens_per_second_wall": 97.27,
+    "generated_at": "2026-11-04T19:21:53+00:00",
+    "prompt_tokens": 38880,
+    "completion_tokens": 32400
+  },
+  "assumptions": {
+    "_comment": "Every input to the break-even model. 'verified' means the number was read from the source URL on the stated date. 'assumption' means it is a modelling choice, not a quote, and the sensitivity table shows what happens when it moves.",
+    "api": {
+      "currency": "USD",
+      "unit": "per 1M tokens",
+      "fetched": "2026-11-04",
+      "models": [
+        {
+          "vendor": "OpenAI",
+          "model": "gpt-6-luna",
+          "input_per_1m": 0.1,
+          "output_per_1m": 0.5,
+          "kind": "verified",
+          "source": "https://developers.openai.com/api/docs/pricing"
+        },
+        {
+          "vendor": "OpenAI",
+          "model": "gpt-5.4-nano",
+          "input_per_1m": 0.2,
+          "output_per_1m": 1.25,
+          "kind": "verified",
+          "source": "https://developers.openai.com/api/docs/pricing"
+        },
+        {
+          "vendor": "OpenAI",
+          "model": "gpt-4o-mini",
+          "input_per_1m": 0.15,
+          "output_per_1m": 0.6,
+          "kind": "verified",
+          "source": "https://developers.openai.com/api/docs/pricing"
+        },
+        {
+          "vendor": "Anthropic",
+          "model": "Claude Haiku 4.5",
+          "input_per_1m": 1.0,
+          "output_per_1m": 5.0,
+          "kind": "verified",
+          "source": "https://claude.com/pricing"
+        }
+      ],
+      "note": "Standard on-demand list prices, no batch or cached discounts. The cheapest complete small-model pair is used as the headline comparator because self-hosting a 0.5B model cannot be compared to a frontier model."
+    },
+    "gpu_rental": {
+      "currency": "USD",
+      "fetched": "2026-11-04",
+      "offers": [
+        {
+          "provider": "RunPod",
+          "instance": "L4 24GB (secure cloud, on-demand)",
+          "usd_per_hour": 0.44,
+          "kind": "verified",
+          "source": "https://api.runpod.io/graphql gpuTypes.lowestPrice.uninterruptablePrice"
+        },
+        {
+          "provider": "Scaleway",
+          "instance": "L4-1-24G (8 vCPU, 48 GB RAM, PAR-1, before tax)",
+          "eur_per_hour": 0.79,
+          "kind": "verified",
+          "source": "https://www.scaleway.com/en/pricing/gpu/"
+        }
+      ],
+      "note": "RunPod is used in the USD model. Scaleway is listed as a second data point in EUR, not converted, so no exchange-rate assumption is hidden."
+    },
+    "owned_hardware": {
+      "capex_usd": 2500,
+      "amortization_months": 36,
+      "power_watts": 400,
+      "electricity_usd_per_kwh": 0.13,
+      "kind": "assumption",
+      "source": "modelling choice: a used/consumer desktop with a 24 GB GPU, 3-year straight-line, load power, Ontario residential average electricity. Not a quote."
+    },
+    "rented_node_overhead_pct": 20,
+    "owned_node_overhead_pct": 20,
+    "hours_per_month": 730,
+    "seconds_per_month": 2592000,
+    "measured_power_watts": 35,
+    "measured_power_kind": "assumption",
+    "measured_power_source": "modelling choice: M4 under mixed CPU load. Does not change the conclusion; it is a few dollars a month.",
+    "gpu_throughput_assumptions_tokens_per_second": [
+      200,
+      500,
+      1000,
+      2000,
+      4000,
+      8000
+    ],
+    "headline_gpu_throughput_tokens_per_second": 1000,
+    "gpu_throughput_kind": "assumption",
+    "gpu_throughput_source": "NOT measured in this project. A 0.5B model on an L4 class GPU is assumed to sustain 1000 output tokens/second aggregate across concurrent requests. Break-even scales linearly with this number; the sensitivity table is the honest part."
+  },
+  "rows": [
+    {
+      "scenario": "measured CPU-only (this Mac, via Lima VM)",
+      "basis": "measured",
+      "api_model": "OpenAI gpt-6-luna",
+      "blended_api_usd_per_1m_tokens": 0.2818,
+      "self_host_monthly_usd": 70.65,
+      "self_host_monthly_marginal_usd": 3.32,
+      "capacity_tokens_per_month": 277577280,
+      "break_even_tokens_per_month": 250709723,
+      "required_utilization_pct": 90.3,
+      "verdict": "breaks even at 90% utilisation",
+      "notes": "throughput measured; 35 W and $2,000 hardware amortised 36 months are assumptions"
+    },
+    {
+      "scenario": "measured CPU-only (this Mac, via Lima VM)",
+      "basis": "measured",
+      "api_model": "OpenAI gpt-5.4-nano",
+      "blended_api_usd_per_1m_tokens": 0.6772,
+      "self_host_monthly_usd": 70.65,
+      "self_host_monthly_marginal_usd": 3.32,
+      "capacity_tokens_per_month": 277577280,
+      "break_even_tokens_per_month": 104322788,
+      "required_utilization_pct": 37.6,
+      "verdict": "breaks even at 38% utilisation",
+      "notes": "throughput measured; 35 W and $2,000 hardware amortised 36 months are assumptions"
+    },
+    {
+      "scenario": "measured CPU-only (this Mac, via Lima VM)",
+      "basis": "measured",
+      "api_model": "OpenAI gpt-4o-mini",
+      "blended_api_usd_per_1m_tokens": 0.3545,
+      "self_host_monthly_usd": 70.65,
+      "self_host_monthly_marginal_usd": 3.32,
+      "capacity_tokens_per_month": 277577280,
+      "break_even_tokens_per_month": 199280728,
+      "required_utilization_pct": 71.8,
+      "verdict": "breaks even at 72% utilisation",
+      "notes": "throughput measured; 35 W and $2,000 hardware amortised 36 months are assumptions"
+    },
+    {
+      "scenario": "measured CPU-only (this Mac, via Lima VM)",
+      "basis": "measured",
+      "api_model": "Anthropic Claude Haiku 4.5",
+      "blended_api_usd_per_1m_tokens": 2.818,
+      "self_host_monthly_usd": 70.65,
+      "self_host_monthly_marginal_usd": 3.32,
+      "capacity_tokens_per_month": 277577280,
+      "break_even_tokens_per_month": 25070972,
+      "required_utilization_pct": 9.0,
+      "verdict": "breaks even at 9% utilisation",
+      "notes": "throughput measured; 35 W and $2,000 hardware amortised 36 months are assumptions"
+    },
+    {
+      "scenario": "rented L4 24GB (RunPod, 730 h/month)",
+      "basis": "modelled throughput",
+      "api_model": "OpenAI gpt-6-luna",
+      "blended_api_usd_per_1m_tokens": 0.2818,
+      "self_host_monthly_usd": 385.44,
+      "self_host_monthly_marginal_usd": 385.44,
+      "capacity_tokens_per_month": 2592000000,
+      "break_even_tokens_per_month": 1367778566,
+      "required_utilization_pct": 52.8,
+      "verdict": "breaks even at 53% utilisation",
+      "notes": "$0.44/h verified 2026-11-04; +20% ops overhead; throughput assumed"
+    },
+    {
+      "scenario": "rented L4 24GB (RunPod, 730 h/month)",
+      "basis": "modelled throughput",
+      "api_model": "OpenAI gpt-5.4-nano",
+      "blended_api_usd_per_1m_tokens": 0.6772,
+      "self_host_monthly_usd": 385.44,
+      "self_host_monthly_marginal_usd": 385.44,
+      "capacity_tokens_per_month": 2592000000,
+      "break_even_tokens_per_month": 569146148,
+      "required_utilization_pct": 22.0,
+      "verdict": "breaks even at 22% utilisation",
+      "notes": "$0.44/h verified 2026-11-04; +20% ops overhead; throughput assumed"
+    },
+    {
+      "scenario": "rented L4 24GB (RunPod, 730 h/month)",
+      "basis": "modelled throughput",
+      "api_model": "OpenAI gpt-4o-mini",
+      "blended_api_usd_per_1m_tokens": 0.3545,
+      "self_host_monthly_usd": 385.44,
+      "self_host_monthly_marginal_usd": 385.44,
+      "capacity_tokens_per_month": 2592000000,
+      "break_even_tokens_per_month": 1087201185,
+      "required_utilization_pct": 41.9,
+      "verdict": "breaks even at 42% utilisation",
+      "notes": "$0.44/h verified 2026-11-04; +20% ops overhead; throughput assumed"
+    },
+    {
+      "scenario": "rented L4 24GB (RunPod, 730 h/month)",
+      "basis": "modelled throughput",
+      "api_model": "Anthropic Claude Haiku 4.5",
+      "blended_api_usd_per_1m_tokens": 2.818,
+      "self_host_monthly_usd": 385.44,
+      "self_host_monthly_marginal_usd": 385.44,
+      "capacity_tokens_per_month": 2592000000,
+      "break_even_tokens_per_month": 136777857,
+      "required_utilization_pct": 5.3,
+      "verdict": "breaks even at 5% utilisation",
+      "notes": "$0.44/h verified 2026-11-04; +20% ops overhead; throughput assumed"
+    },
+    {
+      "scenario": "owned GPU box ($2,500 capex, 36 months)",
+      "basis": "modelled throughput",
+      "api_model": "OpenAI gpt-6-luna",
+      "blended_api_usd_per_1m_tokens": 0.2818,
+      "self_host_monthly_usd": 128.89,
+      "self_host_monthly_marginal_usd": 128.89,
+      "capacity_tokens_per_month": 2592000000,
+      "break_even_tokens_per_month": 457381121,
+      "required_utilization_pct": 17.6,
+      "verdict": "breaks even at 18% utilisation",
+      "notes": "capex, power (400 W) and $0.13/kWh are assumptions; +20% ops overhead"
+    },
+    {
+      "scenario": "owned GPU box ($2,500 capex, 36 months)",
+      "basis": "modelled throughput",
+      "api_model": "OpenAI gpt-5.4-nano",
+      "blended_api_usd_per_1m_tokens": 0.6772,
+      "self_host_monthly_usd": 128.89,
+      "self_host_monthly_marginal_usd": 128.89,
+      "capacity_tokens_per_month": 2592000000,
+      "break_even_tokens_per_month": 190320794,
+      "required_utilization_pct": 7.3,
+      "verdict": "breaks even at 7% utilisation",
+      "notes": "capex, power (400 W) and $0.13/kWh are assumptions; +20% ops overhead"
+    },
+    {
+      "scenario": "owned GPU box ($2,500 capex, 36 months)",
+      "basis": "modelled throughput",
+      "api_model": "OpenAI gpt-4o-mini",
+      "blended_api_usd_per_1m_tokens": 0.3545,
+      "self_host_monthly_usd": 128.89,
+      "self_host_monthly_marginal_usd": 128.89,
+      "capacity_tokens_per_month": 2592000000,
+      "break_even_tokens_per_month": 363556872,
+      "required_utilization_pct": 14.0,
+      "verdict": "breaks even at 14% utilisation",
+      "notes": "capex, power (400 W) and $0.13/kWh are assumptions; +20% ops overhead"
+    },
+    {
+      "scenario": "owned GPU box ($2,500 capex, 36 months)",
+      "basis": "modelled throughput",
+      "api_model": "Anthropic Claude Haiku 4.5",
+      "blended_api_usd_per_1m_tokens": 2.818,
+      "self_host_monthly_usd": 128.89,
+      "self_host_monthly_marginal_usd": 128.89,
+      "capacity_tokens_per_month": 2592000000,
+      "break_even_tokens_per_month": 45738112,
+      "required_utilization_pct": 1.8,
+      "verdict": "breaks even at 2% utilisation",
+      "notes": "capex, power (400 W) and $0.13/kWh are assumptions; +20% ops overhead"
+    }
+  ],
+  "sensitivity": [
+    {
+      "scenario": "rented L4",
+      "assumed_tokens_per_second": 200,
+      "monthly_cost_usd": 385.44,
+      "capacity_tokens_per_month": 518400000,
+      "break_even_tokens_per_month": 1367778566,
+      "required_utilization_pct": 263.8
+    },
+    {
+      "scenario": "owned GPU",
+      "assumed_tokens_per_second": 200,
+      "monthly_cost_usd": 128.89,
+      "capacity_tokens_per_month": 518400000,
+      "break_even_tokens_per_month": 457381121,
+      "required_utilization_pct": 88.2
+    },
+    {
+      "scenario": "rented L4",
+      "assumed_tokens_per_second": 500,
+      "monthly_cost_usd": 385.44,
+      "capacity_tokens_per_month": 1296000000,
+      "break_even_tokens_per_month": 1367778566,
+      "required_utilization_pct": 105.5
+    },
+    {
+      "scenario": "owned GPU",
+      "assumed_tokens_per_second": 500,
+      "monthly_cost_usd": 128.89,
+      "capacity_tokens_per_month": 1296000000,
+      "break_even_tokens_per_month": 457381121,
+      "required_utilization_pct": 35.3
+    },
+    {
+      "scenario": "rented L4",
+      "assumed_tokens_per_second": 1000,
+      "monthly_cost_usd": 385.44,
+      "capacity_tokens_per_month": 2592000000,
+      "break_even_tokens_per_month": 1367778566,
+      "required_utilization_pct": 52.8
+    },
+    {
+      "scenario": "owned GPU",
+      "assumed_tokens_per_second": 1000,
+      "monthly_cost_usd": 128.89,
+      "capacity_tokens_per_month": 2592000000,
+      "break_even_tokens_per_month": 457381121,
+      "required_utilization_pct": 17.6
+    },
+    {
+      "scenario": "rented L4",
+      "assumed_tokens_per_second": 2000,
+      "monthly_cost_usd": 385.44,
+      "capacity_tokens_per_month": 5184000000,
+      "break_even_tokens_per_month": 1367778566,
+      "required_utilization_pct": 26.4
+    },
+    {
+      "scenario": "owned GPU",
+      "assumed_tokens_per_second": 2000,
+      "monthly_cost_usd": 128.89,
+      "capacity_tokens_per_month": 5184000000,
+      "break_even_tokens_per_month": 457381121,
+      "required_utilization_pct": 8.8
+    },
+    {
+      "scenario": "rented L4",
+      "assumed_tokens_per_second": 4000,
+      "monthly_cost_usd": 385.44,
+      "capacity_tokens_per_month": 10368000000,
+      "break_even_tokens_per_month": 1367778566,
+      "required_utilization_pct": 13.2
+    },
+    {
+      "scenario": "owned GPU",
+      "assumed_tokens_per_second": 4000,
+      "monthly_cost_usd": 128.89,
+      "capacity_tokens_per_month": 10368000000,
+      "break_even_tokens_per_month": 457381121,
+      "required_utilization_pct": 4.4
+    },
+    {
+      "scenario": "rented L4",
+      "assumed_tokens_per_second": 8000,
+      "monthly_cost_usd": 385.44,
+      "capacity_tokens_per_month": 20736000000,
+      "break_even_tokens_per_month": 1367778566,
+      "required_utilization_pct": 6.6
+    },
+    {
+      "scenario": "owned GPU",
+      "assumed_tokens_per_second": 8000,
+      "monthly_cost_usd": 128.89,
+      "capacity_tokens_per_month": 20736000000,
+      "break_even_tokens_per_month": 457381121,
+      "required_utilization_pct": 2.2
+    }
+  ],
+  "headline": {
+    "api_model": "OpenAI gpt-6-luna",
+    "note": "The savings case is a GPU you already own or a rented node kept busy. CPU-only inference on a laptop is not cheaper than an API once the hardware is counted."
+  }
+}

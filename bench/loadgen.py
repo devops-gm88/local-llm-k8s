@@ -146,17 +146,32 @@ def run_load_sync(**kwargs) -> dict:
     return asyncio.run(run_load(**kwargs))
 
 
-def single_ask(base_url: str, token: str, prompt: str, max_tokens: int = 8) -> dict:
-    """One request, no concurrency: used for cold-start measurement."""
+def single_ask(
+    base_url: str, token: str, prompt: str, max_tokens: int = 8, retries: int = 5
+) -> dict:
+    """One request, no concurrency: used for cold-start measurement.
+
+    Retries because a pod that just became Ready can still have its connection
+    dropped by the kube-proxy endpoint update; that is a measurement artefact,
+    not a result, and it must not abort the whole benchmark.
+    """
     headers = {"Authorization": f"Bearer {token}"} if token else {}
-    started = time.perf_counter()
-    with httpx.Client(timeout=httpx.Timeout(600.0, connect=10.0)) as client:
-        response = client.post(
-            f"{base_url}/ask",
-            json={"question": prompt, "max_tokens": max_tokens, "temperature": 0.0},
-            headers=headers,
-        )
-        response.raise_for_status()
-        body = response.json()
-    body["_wall_ms"] = round((time.perf_counter() - started) * 1000, 1)
-    return body
+    last_error: Exception | None = None
+    for attempt in range(retries):
+        started = time.perf_counter()
+        try:
+            with httpx.Client(timeout=httpx.Timeout(600.0, connect=10.0)) as client:
+                response = client.post(
+                    f"{base_url}/ask",
+                    json={"question": prompt, "max_tokens": max_tokens, "temperature": 0.0},
+                    headers=headers,
+                )
+                response.raise_for_status()
+                body = response.json()
+            body["_wall_ms"] = round((time.perf_counter() - started) * 1000, 1)
+            body["_attempts"] = attempt + 1
+            return body
+        except Exception as exc:  # noqa: BLE001 - retried, then surfaced
+            last_error = exc
+            time.sleep(2 * (attempt + 1))
+    raise RuntimeError(f"single_ask failed after {retries} attempts: {last_error!r}")

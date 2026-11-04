@@ -222,8 +222,8 @@ def warmup(concurrency: int, count: int) -> dict:
     )
 
 
-def run_grid(config: dict) -> list[dict]:
-    runs: list[dict] = []
+def run_grid(config: dict, payload: dict) -> None:
+    runs: list[dict] = payload["runs"]
     for replicas in config["replicas"]:
         print(f"==> replicas={replicas}: pinning HPA and scaling", flush=True)
         set_replicas(replicas)
@@ -258,7 +258,24 @@ def run_grid(config: dict) -> list[dict]:
                 f"tok/s={row['tokens_per_second_wall']} errors={row['error_rate']}",
                 flush=True,
             )
-    return runs
+            # Write after every cell: a crash later must not lose measured data.
+            write_outputs(payload)
+
+
+def wait_readyz(timeout_s: int = 180) -> None:
+    """The Deployment can report Ready a moment before the Service routes to it."""
+    import httpx
+
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        try:
+            response = httpx.get(f"{BASE_URL}/readyz", timeout=3.0)
+            if response.status_code == 200:
+                return
+        except httpx.HTTPError:
+            pass
+        time.sleep(1)
+    raise TimeoutError("gateway /readyz never returned 200")
 
 
 def measure_cold_start(config: dict) -> dict:
@@ -273,6 +290,8 @@ def measure_cold_start(config: dict) -> dict:
     wait_deployment_ready("gateway")
     gateway_ready_s = round(time.perf_counter() - started, 2)
 
+    wait_readyz()
+
     # A pod is Ready when /readyz passes, which needs Ollama to list the model.
     first = loadgen.single_ask(BASE_URL, TOKEN, PROMPT, max_tokens=8)
     first_ask_ms = first.get("_wall_ms")
@@ -285,6 +304,7 @@ def measure_cold_start(config: dict) -> dict:
     wait_pod_count("app.kubernetes.io/name=ollama", 0, timeout_s=120)
     wait_deployment_ready("ollama", timeout_s=600)
     ollama_ready_s = round(time.perf_counter() - restart_started, 2)
+    wait_readyz()
     after = loadgen.single_ask(BASE_URL, TOKEN, PROMPT, max_tokens=8)
 
     return {
@@ -425,7 +445,7 @@ def write_outputs(payload: dict) -> None:
         "ollama_mem_mib_mean",
     ]
     with csv_path.open("w", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer = csv.DictWriter(handle, fieldnames=fieldnames, lineterminator="\n")
         writer.writeheader()
         for row in rows:
             resources = row.get("resources", {})
@@ -490,11 +510,21 @@ def main() -> int:
         "runs": [],
     }
     started = time.time()
-    payload["runs"] = run_grid(config)
+    run_grid(config, payload)
     if not args.quick and not args.skip_cold_start:
-        payload["cold_start"] = measure_cold_start(config)
+        try:
+            payload["cold_start"] = measure_cold_start(config)
+        except Exception as exc:  # noqa: BLE001 - the grid matters more
+            payload["cold_start"] = {"error": repr(exc)[:500]}
+            print(f"warning: cold-start measurement failed: {exc}", file=sys.stderr)
+        write_outputs(payload)
     if not args.quick and not args.skip_hpa:
-        payload["hpa"] = measure_hpa(config)
+        try:
+            payload["hpa"] = measure_hpa(config)
+        except Exception as exc:  # noqa: BLE001
+            payload["hpa"] = {"error": repr(exc)[:500]}
+            print(f"warning: HPA measurement failed: {exc}", file=sys.stderr)
+        write_outputs(payload)
     payload["wall_seconds"] = round(time.time() - started, 1)
     write_outputs(payload)
 

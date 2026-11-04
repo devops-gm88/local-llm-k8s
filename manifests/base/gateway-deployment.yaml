@@ -63,7 +63,10 @@ spec:
             # Sized for a 4 vCPU VM shared with Ollama: small request so the HPA
             # has headroom to measure utilization, hard cap so 4 replicas fit.
             requests:
-              cpu: "100m"
+              # Measured: at 50 concurrent clients this pod burns 10-16m CPU,
+              # because it is waiting on Ollama, not computing. A 50m request
+              # makes the HPA's utilisation signal track load (see gateway-hpa).
+              cpu: "50m"
               memory: 96Mi
             limits:
               cpu: "500m"

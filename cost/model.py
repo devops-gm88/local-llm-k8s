@@ -148,6 +148,7 @@ def build_table(inputs: dict) -> tuple[list[dict], list[dict], dict]:
                     "api_model": f"{model['vendor']} {model['model']}",
                     "blended_api_usd_per_1m_tokens": round(price, 4),
                     "self_host_monthly_usd": scenario["monthly_cost_usd"],
+                    "self_host_monthly_marginal_usd": scenario["monthly_cost_marginal_usd"],
                     "capacity_tokens_per_month": cap,
                     "break_even_tokens_per_month": round(break_even_tokens),
                     "required_utilization_pct": None if util is None else round(util, 1),
@@ -187,6 +188,7 @@ def write_csv(rows: list[dict]) -> Path:
         "api_model",
         "blended_api_usd_per_1m_tokens",
         "self_host_monthly_usd",
+        "self_host_monthly_marginal_usd",
         "capacity_tokens_per_month",
         "break_even_tokens_per_month",
         "required_utilization_pct",
@@ -194,7 +196,7 @@ def write_csv(rows: list[dict]) -> Path:
         "notes",
     ]
     with path.open("w", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer = csv.DictWriter(handle, fieldnames=fields, lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
     return path
@@ -221,8 +223,17 @@ def chart(inputs: dict, rows: list[dict], sensitivity: list[dict]) -> Path:
     for (label, cost), colour in zip(scenario_lines.items(), colours):
         left.axhline(cost, linestyle="--", color=colour, label=f"{label} (USD/month)")
         if "CPU" in label:
-            left.axvline(
+            cpu_capacity = next(
                 row["capacity_tokens_per_month"] for row in rows if row["scenario"] == label
+            )
+            left.axvline(cpu_capacity, color=colour, linestyle=":", linewidth=1)
+            left.annotate(
+                "measured CPU capacity",
+                xy=(cpu_capacity, cost),
+                xytext=(6, 6),
+                textcoords="offset points",
+                fontsize=7,
+                color=colour,
             )
     left.set_xscale("log")
     left.set_xlabel("tokens per month (mixed input/output, log scale)")
@@ -231,26 +242,28 @@ def chart(inputs: dict, rows: list[dict], sensitivity: list[dict]) -> Path:
     left.grid(alpha=0.3)
     left.legend(frameon=False, fontsize=8)
 
-    for label, colour in (("rented L4", "#1f4e79"), ("owned GPU", "#2e75b6")):
+    for label, colour in (("rented L4", "#c55a11"), ("owned GPU", "#2a9d8f")):
         series = [row for row in sensitivity if row["scenario"] == label]
         right.plot(
             [row["assumed_tokens_per_second"] for row in series],
-            [row["break_even_tokens_per_month"] for row in series],
+            [row["required_utilization_pct"] for row in series],
             marker="o",
             color=colour,
             label=label,
         )
-    right.axhline(
-        measured["best_tokens_per_second_wall"] * SECONDS_PER_MONTH,
-        color="#c55a11",
-        linestyle=":",
-        label="measured CPU capacity (this Mac)",
-    )
+    right.axhline(100, color="#7f7f7f", linestyle="--", linewidth=1, label="100% utilisation")
     right.set_xscale("log")
-    right.set_yscale("log")
+    right.set_xticks(assumptions["gpu_throughput_assumptions_tokens_per_second"])
+    right.set_xticklabels(
+        [str(v) for v in assumptions["gpu_throughput_assumptions_tokens_per_second"]]
+    )
+    right.minorticks_off()
     right.set_xlabel("assumed GPU throughput (output tokens/second, log scale)")
-    right.set_ylabel("break-even tokens per month")
-    right.set_title(f"Sensitivity: the GPU throughput was never measured\n(API comparator: {headline['model']})")
+    right.set_ylabel("utilisation needed to break even (%)")
+    right.set_title(
+        "Sensitivity: the GPU throughput was never measured\n"
+        f"(API comparator: {headline['model']})"
+    )
     right.grid(alpha=0.3)
     right.legend(frameon=False, fontsize=8)
 

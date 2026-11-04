@@ -38,6 +38,17 @@ jobs:
           pip install --quiet -r gateway/requirements-dev.txt
           cd gateway && python -m pytest -q tests
 
+  readme-matches-results:
+    name: README matches committed results
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Fail if README drifted from bench/results.json or cost/break_even.csv
+        run: python bench/render_readme.py --check
+
   kind-smoke:
     name: kind smoke test (real manifests, mocked model)
     runs-on: ubuntu-24.04
