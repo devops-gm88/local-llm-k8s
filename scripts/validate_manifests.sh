@@ -12,7 +12,15 @@ if [ -z "${KUBECTL:-}" ]; then
     KUBECTL="kubectl"                          # CI installs it on PATH
   fi
 fi
-KUBECONFORM="${KUBECONFORM:-${REPO_ROOT}/.tools/bin/kubeconform}"
+if [ -z "${KUBECONFORM:-}" ]; then
+  # Prefer whatever is on PATH (CI installs it there); fall back to the
+  # repo-local download from `make tools`.
+  if command -v kubeconform >/dev/null 2>&1; then
+    KUBECONFORM="$(command -v kubeconform)"
+  else
+    KUBECONFORM="$REPO_ROOT/.tools/bin/kubeconform"
+  fi
+fi
 
 command -v "$KUBECTL" >/dev/null 2>&1 || { echo "error: kubectl not found" >&2; exit 1; }
 if [ ! -x "$KUBECONFORM" ] && ! command -v "$KUBECONFORM" >/dev/null 2>&1; then
