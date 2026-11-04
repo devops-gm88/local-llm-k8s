@@ -3,6 +3,7 @@
 .lima/
 .home/
 .kube/
+.shots/
 .venv/
 __pycache__/
 *.pyc
