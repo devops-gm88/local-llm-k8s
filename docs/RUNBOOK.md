@@ -2,6 +2,8 @@
 
 Everything here runs on one Mac: one Lima VM, one single-node k3s, one model.
 
+> Short version for a restart: [RESTART_CHEATSHEET.html](RESTART_CHEATSHEET.html).
+
 ## Start and stop
 
 ```bash

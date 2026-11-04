@@ -77,6 +77,9 @@ make down      # delete workloads; `make stop` shuts the VM down
 `make up` takes 10-15 minutes the first time (Ubuntu image, k3s, a 2.8 GB
 Ollama image, a 0.4 GB model). Later runs are under a minute.
 
+If a step fails, open [docs/RESTART_CHEATSHEET.html](docs/RESTART_CHEATSHEET.html).
+It has the start/stop steps, a symptom table, and the one Ubuntu 26.04 trap.
+
 ## Results
 
 <!-- BENCH:START -->
@@ -165,6 +168,7 @@ bench/                  asyncio load generator, orchestration, charts
 cost/                   assumptions, break-even model, generated table + chart
 scripts/                up/deploy/demo/bench/cost, Lima config template
 docs/RUNBOOK.md         operating instructions and failure table
+docs/RESTART_CHEATSHEET.html  start/stop/repair steps in easy words
 .github/workflows/ci.yml  manifests + gateway tests + kind smoke test
 ```
 

@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Restart the Local LLM Cluster — Cheat Sheet</title>
+<meta name="description" content="Short steps to start, use and stop the local-llm-k8s cluster on a Mac. Easy words.">
+<style>
+  :root {
+    --ink: #1d1d1b;
+    --muted: #5c5c56;
+    --paper: #fbfaf6;
+    --line: #d9d5ca;
+    --accent: #1f4e79;
+    --code-bg: #f1efe8;
+    --warn-bg: #faf1e6;
+    --warn-line: #c58b3a;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: ui-serif, Georgia, "Times New Roman", serif;
+    font-size: 1rem;
+    line-height: 1.55;
+  }
+
+  .page {
+    max-width: 46rem;
+    margin: 0 auto;
+    padding: 3rem 1.5rem 4rem;
+  }
+
+  header { border-bottom: 2px solid var(--ink); padding-bottom: 1.25rem; }
+
+  h1 {
+    font-size: 2rem;
+    line-height: 1.15;
+    margin: 0 0 0.5rem;
+    letter-spacing: -0.01em;
+  }
+
+  .sub {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0;
+  }
+
+  h2 {
+    font-size: 1.25rem;
+    margin: 2.5rem 0 0.75rem;
+    padding-bottom: 0.35rem;
+    border-bottom: 1px solid var(--line);
+  }
+
+  h3 {
+    font-size: 1rem;
+    margin: 1.5rem 0 0.35rem;
+    color: var(--accent);
+  }
+
+  p { margin: 0 0 0.75rem; }
+
+  ul, ol { margin: 0 0 0.9rem; padding-left: 1.35rem; }
+  li { margin: 0 0 0.35rem; }
+
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.95em;
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    padding: 0.05em 0.3em;
+  }
+
+  pre {
+    margin: 0.5rem 0 1rem;
+    padding: 0.85rem 1rem;
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    border-radius: 3px;
+    overflow-x: auto;
+  }
+
+  pre code {
+    background: none;
+    border: 0;
+    padding: 0;
+    font-size: 0.95rem;
+    white-space: pre;
+  }
+
+  .step {
+    display: grid;
+    grid-template-columns: 2.25rem 1fr;
+    gap: 0 0.75rem;
+    margin: 0 0 1rem;
+  }
+
+  .step .num {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--paper);
+    background: var(--accent);
+    border-radius: 50%;
+    width: 1.65rem;
+    height: 1.65rem;
+    display: grid;
+    place-items: center;
+    margin-top: 0.2rem;
+  }
+
+  .step .body { min-width: 0; }
+  .step .body > :last-child { margin-bottom: 0; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0.75rem 0 1.25rem;
+    font-size: 0.9rem;
+    line-height: 1.4;
+  }
+
+  th, td {
+    text-align: left;
+    vertical-align: top;
+    padding: 0.5rem 0.6rem;
+    border-bottom: 1px solid var(--line);
+  }
+
+  th {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 2px solid var(--ink);
+  }
+
+  .note {
+    margin: 0.75rem 0 1rem;
+    padding: 0.85rem 1rem;
+    background: var(--warn-bg);
+    border-left: 3px solid var(--warn-line);
+    border-radius: 3px;
+    font-size: 0.95rem;
+  }
+
+  .note strong { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.8rem; letter-spacing: 0.04em; text-transform: uppercase; }
+
+  .quiet { color: var(--muted); font-size: 0.9rem; }
+
+  footer {
+    margin-top: 3rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  a { color: var(--accent); }
+  a:focus-visible, code:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  @media print {
+    body { background: #fff; }
+    .page { max-width: none; padding: 0; }
+    pre, table, .note { break-inside: avoid; }
+    a { color: inherit; text-decoration: none; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <p class="sub">local-llm-k8s &middot; cheat sheet &middot; 4 November 2026</p>
+  <h1>Restart the Local LLM Cluster</h1>
+  <p class="quiet">Short steps. Easy words. Keep this page near the Mac.</p>
+</header>
+
+<main>
+
+<h2>1. What this is</h2>
+<p>This project puts a small language model on a cluster. The cluster runs inside a virtual machine (VM) on the Mac.</p>
+<p>A gateway answers each question. A gateway is a small web service. It sends the question to the model server. The model server is called Ollama.</p>
+<p>You do not need Docker, a cloud account, or a GPU.</p>
+
+<h2>2. What you need</h2>
+<ul>
+  <li>Apple silicon Mac with 16 GB RAM.</li>
+  <li>15 GB free disk space.</li>
+  <li>An internet connection for the first start.</li>
+  <li>About 2 minutes for a normal start.</li>
+  <li>About 15 minutes after you delete the VM.</li>
+</ul>
+
+<h2>3. Start the cluster</h2>
+
+<div class="step">
+  <div class="num">1</div>
+  <div class="body">
+    <h3>Open Terminal.</h3>
+  </div>
+</div>
+
+<div class="step">
+  <div class="num">2</div>
+  <div class="body">
+    <h3>Go to the project folder.</h3>
+    <pre><code>cd ~/Workspace/local-llm-k8s</code></pre>
+  </div>
+</div>
+
+<div class="step">
+  <div class="num">3</div>
+  <div class="body">
+    <h3>Start the VM and the cluster.</h3>
+    <pre><code>make up</code></pre>
+    <p>Wait for the table of pods. A pod is one running container in the cluster.</p>
+    <p>This command does five things:</p>
+    <ol>
+      <li>It starts the VM.</li>
+      <li>It installs Kubernetes in the VM. The cluster software is called k3s.</li>
+      <li>It builds the gateway image.</li>
+      <li>It downloads the model. The model is <code>qwen2.5:0.5b-instruct</code>.</li>
+      <li>It starts the gateway and the model server.</li>
+    </ol>
+  </div>
+</div>
+
+<div class="step">
+  <div class="num">4</div>
+  <div class="body">
+    <h3>Check the node.</h3>
+    <p>Kubernetes calls each machine a node. Run this command:</p>
+    <pre><code>kubectl get nodes</code></pre>
+    <p>One line must show <strong>Ready</strong>.</p>
+  </div>
+</div>
+
+<h2>4. Use the cluster</h2>
+
+<h3>Ask one question</h3>
+<pre><code>make demo</code></pre>
+<p>The gateway shows the answer, the token counts, and the time.</p>
+
+<h3>Run the benchmark</h3>
+<pre><code>make bench</code></pre>
+<p>The command writes three files: <code>bench/results.json</code>, <code>bench/results.csv</code>, and the charts in <code>bench/charts/</code>.</p>
+
+<h3>Make the cost table</h3>
+<pre><code>make cost</code></pre>
+<p>The command writes <code>cost/break_even.csv</code> and <code>cost/break_even.png</code>.</p>
+
+<h2>5. Stop the cluster</h2>
+
+<div class="step">
+  <div class="num">1</div>
+  <div class="body">
+    <h3>Delete the work.</h3>
+    <pre><code>make down</code></pre>
+    <p>The model files stay on the disk of the VM. The next start is therefore fast.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="num">2</div>
+  <div class="body">
+    <h3>Stop the VM.</h3>
+    <pre><code>make stop</code></pre>
+    <p>This step frees 6 GB of RAM for macOS.</p>
+  </div>
+</div>
+
+<h2>6. Problems and actions</h2>
+
+<table>
+  <thead>
+    <tr><th scope="col">You see</th><th scope="col">Cause</th><th scope="col">Action</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>kubectl</code> cannot connect</td>
+      <td>The VM is stopped.</td>
+      <td>Run <code>make up</code>.</td>
+    </tr>
+    <tr>
+      <td>SSH does not open after <code>make up</code></td>
+      <td>A known Ubuntu 26.04 problem. Lima shows "Running", but the network is not ready.</td>
+      <td>Read section 7.</td>
+    </tr>
+    <tr>
+      <td>Pod state <code>ImagePullBackOff</code></td>
+      <td>The gateway image is not in the cluster.</td>
+      <td>Run <code>./scripts/build_gateway.sh</code>. Then run <code>make up</code>.</td>
+    </tr>
+    <tr>
+      <td><code>CrashLoopBackOff</code> and the log shows "Permission denied: /app/app.py"</td>
+      <td>The image has a wrong file mode.</td>
+      <td>Run <code>make up</code> to build the image again.</td>
+    </tr>
+    <tr>
+      <td><code>/readyz</code> gives 503 with <code>model_missing</code></td>
+      <td>The model download is not complete.</td>
+      <td>Wait 5 minutes. Then run <code>make demo</code> again.</td>
+    </tr>
+    <tr>
+      <td>Pod state <code>OOMKilled</code></td>
+      <td>The model is too large for the memory limit.</td>
+      <td>Use <code>qwen2.5:0.5b-instruct</code>. Do not use a larger model on this Mac.</td>
+    </tr>
+    <tr>
+      <td>The autoscaler shows <code>cpu: &lt;unknown&gt;</code></td>
+      <td>The metrics service is not ready.</td>
+      <td>Wait 60 seconds.</td>
+    </tr>
+    <tr>
+      <td><code>make bench</code> stops with "Server disconnected"</td>
+      <td>A pod restarted during the run.</td>
+      <td>Run <code>make bench</code> again.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>7. If SSH does not open</h2>
+<p>Lima can show "Running", but the VM does not accept SSH. This is a known problem on Ubuntu 26.04.</p>
+<p>The file <code>scripts/lima/llmk8s.yaml.in</code> has the correct setting. Do not remove this line:</p>
+<pre><code>param:
+  internal_netplanOptional: "true"</code></pre>
+
+<div class="step">
+  <div class="num">1</div>
+  <div class="body">
+    <h3>Read the log of the VM.</h3>
+    <pre><code>tail -20 .lima/llmk8s/ha.stderr.log</code></pre>
+    <p>If you see "Waiting for port to become available" again and again, do step 2.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="num">2</div>
+  <div class="body">
+    <h3>Delete the VM and start again.</h3>
+    <pre><code>./scripts/destroy.sh
+make up</code></pre>
+    <p>The command asks a question. Type <code>y</code> and press Enter.</p>
+  </div>
+</div>
+
+<h2>8. Files to read</h2>
+<table>
+  <thead>
+    <tr><th scope="col">File</th><th scope="col">Content</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>README.md</code></td><td>What the project does. The measured numbers. The limits.</td></tr>
+    <tr><td><code>docs/RUNBOOK.md</code></td><td>How to operate the cluster. More problems and actions.</td></tr>
+    <tr><td><code>docs/RESTART_CHEATSHEET.html</code></td><td>This page.</td></tr>
+    <tr><td><code>bench/results.json</code></td><td>The measured data. The README numbers come from this file.</td></tr>
+    <tr><td><code>cost/break_even.csv</code></td><td>The cost table. Every assumption is in <code>cost/assumptions.json</code>.</td></tr>
+    <tr><td><code>MARK/Projects/Build_Ideas/LOCAL_AI_K8S_HANDOFF_2026-11-04.md</code></td><td>The session handoff. This file is outside the repo.</td></tr>
+  </tbody>
+</table>
+
+<h2>9. Rules</h2>
+<ol>
+  <li>Do not spend money. Use no cloud service and no API credit.</li>
+  <li>Do not make the VM larger than 6 GB RAM. macOS needs the other 8 GB.</li>
+  <li>Do not use a model larger than 0.5B on this Mac. The model must fit in the memory limit.</li>
+  <li>Do not claim a GPU result. This cluster has no GPU. The cost model uses an assumed GPU speed.</li>
+  <li>Do not change the manifests without a benchmark run. The README numbers must match the committed JSON.</li>
+</ol>
+
+<h2>10. Numbers you can quote</h2>
+<p class="quiet">Measured on 4 November 2026. Model: <code>qwen2.5:0.5b-instruct</code>. Node: 4 vCPU, 6 GiB RAM, no GPU.</p>
+
+<table>
+  <thead>
+    <tr><th scope="col">Item</th><th scope="col">Value</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Output speed</td><td>97–107 tokens per second</td></tr>
+    <tr><td>p50 latency, 10 clients</td><td>3.7–4.8 seconds</td></tr>
+    <tr><td>p50 latency, 50 clients</td><td>About 20 seconds</td></tr>
+    <tr><td>Error rate</td><td>0 %</td></tr>
+    <tr><td>Gateway cold start</td><td>4.28 seconds</td></tr>
+    <tr><td>Autoscaler scale-up</td><td>1 to 2 pods in 133 seconds</td></tr>
+    <tr><td>Break-even, this CPU Mac</td><td>90 % utilisation</td></tr>
+    <tr><td>Break-even, rented L4 GPU</td><td>53 % utilisation</td></tr>
+    <tr><td>Break-even, owned GPU box</td><td>18 % utilisation</td></tr>
+  </tbody>
+</table>
+
+<div class="note">
+  <p><strong>Important</strong></p>
+  <p>The GPU speed is an assumption. Nobody measured it. This Mac has no GPU. The CPU speed is measured.</p>
+  <p>More gateway pods do not add speed. The model server is the limit. It uses 3 of the 4 CPUs.</p>
+</div>
+
+</main>
+
+<footer>
+  <p>Repo: github.com/devops-gm88/local-llm-k8s &middot; commit 383ae12 &middot; MIT licence</p>
+  <p>Last check: 4 November 2026. The VM was stopped. All four CI jobs were green.</p>
+</footer>
+
+</div>
+</body>
+</html>
