@@ -169,6 +169,7 @@ cost/                   assumptions, break-even model, generated table + chart
 scripts/                up/deploy/demo/bench/cost, Lima config template
 docs/RUNBOOK.md         operating instructions and failure table
 docs/RESTART_CHEATSHEET.html  start/stop/repair steps in easy words
+docs/TAILSCALE_REMOTE_ACCESS.html  reach the node from any network, own devices only
 .github/workflows/ci.yml  manifests + gateway tests + kind smoke test
 ```
 

@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reach the LLM Node From Any Network — Tailscale Setup</title>
+<meta name="description" content="Steps to install Tailscale on a second Mac, publish the local LLM gateway to your own devices only, and operate the cluster from another Mac. Easy words.">
+<style>
+  :root {
+    --ink: #1d1d1b;
+    --muted: #5c5c56;
+    --paper: #fbfaf6;
+    --line: #d9d5ca;
+    --accent: #1f4e79;
+    --code-bg: #f1efe8;
+    --warn-bg: #faf1e6;
+    --warn-line: #c58b3a;
+    --stop-bg: #f7e9e6;
+    --stop-line: #a8443a;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: ui-serif, Georgia, "Times New Roman", serif;
+    font-size: 1rem;
+    line-height: 1.55;
+  }
+
+  .page { max-width: 46rem; margin: 0 auto; padding: 3rem 1.5rem 4rem; }
+
+  header { border-bottom: 2px solid var(--ink); padding-bottom: 1.25rem; }
+
+  h1 { font-size: 2rem; line-height: 1.15; margin: 0 0 0.5rem; letter-spacing: -0.01em; }
+
+  .sub {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0;
+  }
+
+  h2 { font-size: 1.25rem; margin: 2.5rem 0 0.75rem; padding-bottom: 0.35rem; border-bottom: 1px solid var(--line); }
+  h3 { font-size: 1rem; margin: 1.5rem 0 0.35rem; color: var(--accent); }
+
+  p { margin: 0 0 0.75rem; }
+  ul, ol { margin: 0 0 0.9rem; padding-left: 1.35rem; }
+  li { margin: 0 0 0.35rem; }
+
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.95em;
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    padding: 0.05em 0.3em;
+  }
+
+  pre {
+    margin: 0.5rem 0 1rem;
+    padding: 0.85rem 1rem;
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    border-radius: 3px;
+    overflow-x: auto;
+  }
+
+  pre code { background: none; border: 0; padding: 0; font-size: 0.95rem; white-space: pre; }
+
+  .step { display: grid; grid-template-columns: 2.25rem 1fr; gap: 0 0.75rem; margin: 0 0 1rem; }
+
+  .step .num {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--paper);
+    background: var(--accent);
+    border-radius: 50%;
+    width: 1.65rem;
+    height: 1.65rem;
+    display: grid;
+    place-items: center;
+    margin-top: 0.2rem;
+  }
+
+  .step .body { min-width: 0; }
+  .step .body > :last-child { margin-bottom: 0; }
+
+  table { width: 100%; border-collapse: collapse; margin: 0.75rem 0 1.25rem; font-size: 0.9rem; line-height: 1.4; }
+  th, td { text-align: left; vertical-align: top; padding: 0.5rem 0.6rem; border-bottom: 1px solid var(--line); }
+
+  th {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 2px solid var(--ink);
+  }
+
+  .note { margin: 0.75rem 0 1rem; padding: 0.85rem 1rem; background: var(--warn-bg); border-left: 3px solid var(--warn-line); border-radius: 3px; font-size: 0.95rem; }
+  .stop { margin: 0.75rem 0 1rem; padding: 0.85rem 1rem; background: var(--stop-bg); border-left: 3px solid var(--stop-line); border-radius: 3px; font-size: 0.95rem; }
+
+  .note strong, .stop strong {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .quiet { color: var(--muted); font-size: 0.9rem; }
+
+  .check { list-style: none; padding-left: 0; }
+  .check li { padding-left: 1.6rem; position: relative; }
+  .check li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.3rem;
+    width: 0.9rem;
+    height: 0.9rem;
+    border: 1.5px solid var(--muted);
+    border-radius: 2px;
+  }
+
+  footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.8rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+  a { color: var(--accent); }
+  a:focus-visible, code:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  @media print {
+    body { background: #fff; }
+    .page { max-width: none; padding: 0; }
+    pre, table, .note, .stop { break-inside: avoid; }
+    a { color: inherit; text-decoration: none; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <p class="sub">local-llm-k8s &middot; remote access &middot; 4 November 2026</p>
+  <h1>Reach the LLM Node From Any Network</h1>
+  <p class="quiet">Set up Tailscale on the second Mac. Publish the gateway to your devices only. Operate it from this Mac.</p>
+</header>
+
+<main>
+
+<h2>1. What this does</h2>
+<p>Tailscale makes a private network. It is called a tailnet. Each device gets a private address in <code>100.64.0.0/10</code>.</p>
+<p>Tailscale finds a path between the devices. The devices can be on different Wi-Fi networks. You do not open a port on a router.</p>
+<p>This guide uses two Macs:</p>
+<ul>
+  <li><strong>Node Mac</strong> &mdash; the older Intel Mac. It runs the cluster. It stays on.</li>
+  <li><strong>Work Mac</strong> &mdash; the Apple silicon Mac. You use it to work.</li>
+</ul>
+<p>After this setup, your phone and your Work Mac can call the model from any network. Only devices in your tailnet can do this. The service is not on the public internet.</p>
+
+<h2>2. Before you start</h2>
+<ul>
+  <li>Both Macs use the same Tailscale account. You already have the account on the Work Mac.</li>
+  <li>The cluster runs on the Node Mac. See <code>docs/RESTART_CHEATSHEET.html</code>.</li>
+  <li>The Node Mac has Admin rights for your user.</li>
+  <li>You can open the Tailscale admin console. You need this for 3 settings.</li>
+</ul>
+
+<div class="note">
+  <p><strong>First</strong></p>
+  <p>The repository on this day is for arm64 Macs only. It has <code>arch: aarch64</code>, an arm64 VM image, and arm64 tools.</p>
+  <p>Change the repository for Intel first. Then run <code>make up</code> on the Node Mac. The changes are: host CPU detection, <code>vmType: qemu</code> on older macOS, and an amd64 <code>nerdctl</code> bundle. This is a separate task.</p>
+</div>
+
+<h2>3. Install Tailscale on the Node Mac</h2>
+
+<div class="step">
+  <div class="num">1</div>
+  <div class="body">
+    <h3>Open the download page.</h3>
+    <p>On the Node Mac, open this page in a browser:</p>
+    <pre><code>https://tailscale.com/download/mac</code></pre>
+  </div>
+</div>
+
+<div class="step">
+  <div class="num">2</div>
+  <div class="body">
+    <h3>Download the standalone package.</h3>
+    <p>Select the standalone download. Do not select the App Store version. The standalone package includes the command line.</p>
+    <p class="quiet">The Tailscale app is a universal program. It runs on Intel and on Apple silicon.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="num">3</div>
+  <div class="body">
+    <h3>Install the package.</h3>
+    <p>Open the file. Follow the steps on the screen. The installer asks for your password.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="num">4</div>
+  <div class="body">
+    <h3>Check the command line tool.</h3>
+    <p>Open Terminal on the Node Mac. Run this command:</p>
+    <pre><code>tailscale version</code></pre>
+    <p>The command must show a version number. If Terminal shows "command not found", close Terminal and open it again.</p>
+  </div>
+</div>
+
+<h2>4. Join the Node Mac to your tailnet</h2>
+
+<div class="step">
+  <div class="num">1</div>
+  <div class="body">
+    <h3>Start Tailscale and set the name.</h3>
+    <pre><code>tailscale up --hostname=intel-mac</code></pre>
+    <p>Use the name <code>intel-mac</code> in this guide. You can use a different name. If you do, change the name in the commands below.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="num">2</div>
+  <div class="body">
+    <h3>Sign in.</h3>
+    <p>The command prints a web address. Open the address on any device. Sign in with the same account as the Work Mac.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="num">3</div>
+  <div class="body">
+    <h3>Check the machine in the admin console.</h3>
+    <p>Open <code>https://login.tailscale.com/admin/machines</code>. Find <code>intel-mac</code>. The state must be <strong>Connected</strong>.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="num">4</div>
+  <div class="body">
+    <h3>Disable key expiry for this machine.</h3>
+    <p>Open the menu of <code>intel-mac</code>. Select <strong>Disable key expiry</strong>.</p>
+    <p>A server must not lose its key when you are away. Do not do this for a laptop that you carry.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="num">5</div>
+  <div class="body">
+    <h3>Read the private address and the name.</h3>
+    <pre><code>tailscale ip -4
+tailscale status</code></pre>
+    <p>The first command gives an address that starts with <code>100.</code>. The second command gives the name <code>intel-mac.&lt;your-tailnet&gt;.ts.net</code>.</p>
+    <p>Write down <code>&lt;your-tailnet&gt;</code>. You need it below.</p>
+  </div>
+</div>
+
+<h2>5. Check the path from the Work Mac</h2>
+
+<div class="step">
+  <div class="num">1</div>
+  <div class="body">
+    <h3>Look for the Node Mac.</h3>
+    <pre><code>tailscale status</code></pre>
+    <p>Find the line <code>intel-mac</code>. It must not show <strong>offline</strong>.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="num">2</div>
+  <div class="body">
+    <h3>Test the private network.</h3>
+    <pre><code>tailscale ping intel-mac</code></pre>
+    <p>You must see replies. The first reply can take 10 seconds. A direct path can show later. Do not stop the test.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="num">3</div>
+  <div class="body">
+    <h3>Turn on SSH on the Node Mac.</h3>
+    <p>On the Node Mac, open <strong>System Settings</strong>. Open <strong>General</strong>. Open <strong>Sharing</strong>. Turn on <strong>Remote Login</strong>.</p>
+    <p>Add your user in the list of allowed users.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="num">4</div>
+  <div class="body">
+    <h3>Test SSH from the Work Mac.</h3>
+    <pre><code>ssh &lt;you&gt;@intel-mac 'hostname'</code></pre>
+    <p>The command must print the name of the Node Mac. Replace <code>&lt;you&gt;</code> with your macOS user name.</p>
+  </div>
+</div>
+
+<h2>6. Publish the gateway to your tailnet only</h2>
+<p>The cluster answers on port <code>30080</code> of the Node Mac. The command <code>serve</code> publishes this port to your tailnet. It does not publish it to the internet.</p>
+
+<div class="step">
+  <div class="num">1</div>
+  <div class="body">
+    <h3>Check the cluster on the Node Mac.</h3>
+    <pre><code>curl -s http://127.0.0.1:30080/readyz</code></pre>
+    <p>The answer must include <code>"status":"ready"</code>. If the answer is an error, run <code>make up</code> in the project folder first.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="num">2</div>
+  <div class="body">
+    <h3>Publish the port.</h3>
+    <pre><code>tailscale serve --bg 30080</code></pre>
+    <p>The command makes an HTTPS address for your tailnet.</p>
+    <p class="quiet">The option <code>--bg</code> runs the service in the background. The service stays after you close the terminal window.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="num">3</div>
+  <div class="body">
+    <h3>If you get an HTTPS error.</h3>
+    <p>Open the admin console. Open <strong>DNS</strong>. Turn on <strong>HTTPS Certificates</strong>. Run the command again.</p>
+    <p>If you cannot turn on HTTPS, use HTTP on your tailnet instead:</p>
+    <pre><code>tailscale serve --bg --http=80 30080</code></pre>
+  </div>
+</div>
+
+<div class="step">
+  <div class="num">4</div>
+  <div class="body">
+    <h3>Read the public name.</h3>
+    <pre><code>tailscale serve status</code></pre>
+    <p>The command prints the address, for example <code>https://intel-mac.&lt;your-tailnet&gt;.ts.net</code>.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="num">5</div>
+  <div class="body">
+    <h3>Test from the Work Mac.</h3>
+    <pre><code>curl -s https://intel-mac.&lt;your-tailnet&gt;.ts.net/readyz</code></pre>
+    <p>The answer must include <code>"status":"ready"</code>.</p>
+  </div>
+</div>
+
+<h2>7. Call the model from any device</h2>
+<p>The gateway asks for a token. The token is a secret word. It is in a file on the Node Mac.</p>
+
+<div class="step">
+  <div class="num">1</div>
+  <div class="body">
+    <h3>Read the token on the Node Mac.</h3>
+    <pre><code>cat ~/Workspace/local-llm-k8s/.kube/gateway-token</code></pre>
+    <p>Put the token in a password manager. Do not send it in a chat or an email.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="num">2</div>
+  <div class="body">
+    <h3>Send one question from the Work Mac, the phone, or a tablet.</h3>
+    <pre><code>TOKEN="&lt;paste the token&gt;"
+curl -s "https://intel-mac.&lt;your-tailnet&gt;.ts.net/ask" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"question":"What is the capital of Canada?","max_tokens":64}'</code></pre>
+    <p>Read the field <code>answer</code> in the reply.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="num">3</div>
+  <div class="body">
+    <h3>Read the health without a token.</h3>
+    <p>The paths <code>/healthz</code> and <code>/readyz</code> do not use the token. Use them to check the node from any device.</p>
+  </div>
+</div>
+
+<h2>8. Operate the cluster from the Work Mac</h2>
+
+<div class="step">
+  <div class="num">1</div>
+  <div class="body">
+    <h3>Open a tunnel to the cluster API.</h3>
+    <pre><code>ssh -N -L 6443:127.0.0.1:6443 &lt;you&gt;@intel-mac</code></pre>
+    <p>Keep this window open. The tunnel sends port 6443 from the Node Mac to this Mac.</p>
+    <p class="quiet">Why a tunnel: the k3s certificate is valid for <code>127.0.0.1</code>. A direct call to the tailnet address fails the certificate check.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="num">2</div>
+  <div class="body">
+    <h3>Copy the kubeconfig to the Work Mac.</h3>
+    <pre><code>ssh &lt;you&gt;@intel-mac 'cat ~/Workspace/local-llm-k8s/.kube/config' &gt; ~/.kube/intel-k3s.yaml</code></pre>
+  </div>
+</div>
+
+<div class="step">
+  <div class="num">3</div>
+  <div class="body">
+    <h3>Use the remote cluster.</h3>
+    <pre><code>export KUBECONFIG=~/.kube/intel-k3s.yaml
+kubectl get nodes</code></pre>
+    <p>One line must show <strong>Ready</strong>. If two clusters run at the same time, the tunnel and this variable select the Node Mac.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="num">4</div>
+  <div class="body">
+    <h3>Deploy a change.</h3>
+    <pre><code>ssh &lt;you&gt;@intel-mac 'cd ~/Workspace/local-llm-k8s && git pull && make deploy'</code></pre>
+    <p>Deploy from git. Do not copy files by hand. The remote node must match the committed repository.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="num">5</div>
+  <div class="body">
+    <h3>Use the gateway from this Mac.</h3>
+    <p>Open a second tunnel for the gateway port:</p>
+    <pre><code>ssh -N -L 30080:127.0.0.1:30080 &lt;you&gt;@intel-mac</code></pre>
+    <p>Then use <code>make demo</code> in a second terminal. <code>make demo</code> finds <code>127.0.0.1:30080</code>.</p>
+  </div>
+</div>
+
+<div class="note">
+  <p><strong>Benchmark</strong></p>
+  <p>Do not quote benchmark numbers that you collect through the tunnel. The tunnel is in the path. Run <code>make bench</code> on the Node Mac itself. Then copy <code>bench/results.json</code> to the Work Mac.</p>
+</div>
+
+<h2>9. Keep the Node Mac running</h2>
+
+<div class="step">
+  <div class="num">1</div>
+  <div class="body">
+    <h3>Stop sleep.</h3>
+    <p>Open <strong>System Settings</strong>. Open <strong>Lock Screen</strong>. Set the display to turn off only when you want. Set sleep to <strong>Never</strong> when the Mac has power.</p>
+    <p>On a desktop Mac, also turn on <strong>Prevent automatic sleeping when the display is off</strong>.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="num">2</div>
+  <div class="body">
+    <h3>Keep the Mac awake while you are away.</h3>
+    <pre><code>caffeinate -s</code></pre>
+    <p>Keep this window open. The command stops when you close the window or press Control and C.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="num">3</div>
+  <div class="body">
+    <h3>Turn on automatic login.</h3>
+    <p>Open <strong>System Settings</strong>. Open <strong>Users &amp; Groups</strong>. Turn on <strong>Automatic login</strong>.</p>
+    <p>This step helps after a power cut. Tailscale and the Tailscale app start only after a user logs in.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="num">4</div>
+  <div class="body">
+    <h3>Start the cluster after a reboot.</h3>
+    <p>The cluster does not start by itself. Run <code>make up</code> in the project folder on the Node Mac.</p>
+    <p>The appendix below starts it automatically at login.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="num">5</div>
+  <div class="body">
+    <h3>Test a full restart.</h3>
+    <p>Restart the Node Mac. Wait 3 minutes. From the Work Mac, run <code>tailscale ping intel-mac</code> and the <code>/readyz</code> request. Both must work.</p>
+  </div>
+</div>
+
+<h2>10. Rules</h2>
+<ol>
+  <li>Use <code>serve</code>. Do not use <code>funnel</code>. <code>funnel</code> puts the service on the public internet.</li>
+  <li>Do not open a port on the router. Tailscale does not need it.</li>
+  <li>Keep the gateway token secret. Give it only to people that must use the model.</li>
+  <li>In the admin console, open <strong>Access Controls</strong>. Make sure only your devices can reach <code>intel-mac</code>.</li>
+  <li>If a device is lost, remove it from the admin console. The device loses all access.</li>
+  <li>Do not put the Node Mac on a network that you do not trust without a password. Tailscale encrypts the traffic, but the Mac is still a machine on that network.</li>
+</ol>
+
+<h2>11. Problems and actions</h2>
+
+<table>
+  <thead>
+    <tr><th scope="col">You see</th><th scope="col">Cause</th><th scope="col">Action</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>intel-mac</code> shows <strong>offline</strong></td>
+      <td>The Mac is asleep or has no network.</td>
+      <td>Wake the Mac. Check the sleep settings in section 9. Check the Wi-Fi or the cable.</td>
+    </tr>
+    <tr>
+      <td><code>tailscale ping intel-mac</code> fails</td>
+      <td>The devices use different accounts, or one device is not signed in.</td>
+      <td>Run <code>tailscale status</code> on both Macs. Run <code>tailscale up</code> again on the Node Mac.</td>
+    </tr>
+    <tr>
+      <td><code>/readyz</code> fails through the served address</td>
+      <td>The cluster is not running.</td>
+      <td>On the Node Mac, run <code>curl -s http://127.0.0.1:30080/readyz</code>. If this fails, run <code>make up</code>.</td>
+    </tr>
+    <tr>
+      <td>An error about HTTPS certificates</td>
+      <td>HTTPS is off for the tailnet.</td>
+      <td>Admin console, DNS, turn on <strong>HTTPS Certificates</strong>. Run <code>tailscale serve --bg 30080</code> again.</td>
+    </tr>
+    <tr>
+      <td><code>tailscale serve</code> gives no URL</td>
+      <td>The command did not stay in the background.</td>
+      <td>Run <code>tailscale serve status</code>. If the list is empty, run <code>tailscale serve --bg 30080</code> again.</td>
+    </tr>
+    <tr>
+      <td><code>kubectl</code> cannot connect</td>
+      <td>The SSH tunnel is closed.</td>
+      <td>Open the tunnel again. Keep the window open.</td>
+    </tr>
+    <tr>
+      <td><code>kubectl</code> shows a certificate error</td>
+      <td>The kubeconfig points at the tailnet address.</td>
+      <td>Use <code>127.0.0.1</code> with the tunnel. Do not put the tailnet address in the kubeconfig.</td>
+    </tr>
+    <tr>
+      <td><code>/ask</code> gives 401</td>
+      <td>The token is missing or wrong.</td>
+      <td>Read the token again on the Node Mac. Check the header <code>Authorization: Bearer &lt;token&gt;</code>.</td>
+    </tr>
+    <tr>
+      <td>SSH asks for a password</td>
+      <td>Remote Login is off, or your user is not in the list.</td>
+      <td>Turn on Remote Login. Add your user.</td>
+    </tr>
+    <tr>
+      <td>Tailscale is offline after a restart</td>
+      <td>The app does not start at login.</td>
+      <td>Turn on automatic login. Open the Tailscale app. Turn on <strong>Start on login</strong>.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>12. Final check</h2>
+<ul class="check">
+  <li><code>tailscale status</code> shows <code>intel-mac</code> as connected.</li>
+  <li><code>tailscale ping intel-mac</code> works from the Work Mac.</li>
+  <li><code>ssh &lt;you&gt;@intel-mac 'hostname'</code> works.</li>
+  <li><code>curl https://intel-mac.&lt;your-tailnet&gt;.ts.net/readyz</code> shows ready.</li>
+  <li><code>/ask</code> returns an answer from the phone or the Work Mac.</li>
+  <li><code>kubectl get nodes</code> works through the tunnel.</li>
+  <li>The Node Mac does not sleep.</li>
+  <li>Key expiry is off for <code>intel-mac</code>.</li>
+  <li><code>tailscale funnel status</code> shows no public service.</li>
+</ul>
+
+<h2>Appendix: start the cluster at login</h2>
+<p>This step is optional. It makes the cluster start after a reboot.</p>
+
+<div class="step">
+  <div class="num">1</div>
+  <div class="body">
+    <h3>Create the file.</h3>
+    <pre><code>mkdir -p ~/Library/LaunchAgents
+cat &gt; ~/Library/LaunchAgents/com.local.llmk8s.up.plist &lt;&lt;'PLIST'
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"&gt;
+&lt;plist version="1.0"&gt;
+&lt;dict&gt;
+  &lt;key&gt;Label&lt;/key&gt;&lt;string&gt;com.local.llmk8s.up&lt;/string&gt;
+  &lt;key&gt;RunAtLoad&lt;/key&gt;&lt;true/&gt;
+  &lt;key&gt;WorkingDirectory&lt;/key&gt;&lt;string&gt;/Users/&lt;you&gt;/Workspace/local-llm-k8s&lt;/string&gt;
+  &lt;key&gt;ProgramArguments&lt;/key&gt;
+  &lt;array&gt;
+    &lt;string&gt;/bin/bash&lt;/string&gt;
+    &lt;string&gt;-lc&lt;/string&gt;
+    &lt;string&gt;sleep 60 &amp;&amp; make up&lt;/string&gt;
+  &lt;/array&gt;
+  &lt;key&gt;StandardOutPath&lt;/key&gt;&lt;string&gt;/tmp/llmk8s-up.log&lt;/string&gt;
+  &lt;key&gt;StandardErrorPath&lt;/key&gt;&lt;string&gt;/tmp/llmk8s-up.err&lt;/string&gt;
+&lt;/dict&gt;
+&lt;/plist&gt;
+PLIST</code></pre>
+    <p>Replace <code>&lt;you&gt;</code> with your user name. The command waits 60 seconds for the network.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="num">2</div>
+  <div class="body">
+    <h3>Load the file.</h3>
+    <pre><code>launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.local.llmk8s.up.plist</code></pre>
+  </div>
+</div>
+
+<div class="step">
+  <div class="num">3</div>
+  <div class="body">
+    <h3>Read the log.</h3>
+    <pre><code>cat /tmp/llmk8s-up.log</code></pre>
+    <p>If the log shows an error, run <code>make up</code> by hand. Then read <code>docs/RESTART_CHEATSHEET.html</code>.</p>
+  </div>
+</div>
+
+</main>
+
+<footer>
+  <p>Project: github.com/devops-gm88/local-llm-k8s &middot; MIT licence &middot; 4 November 2026</p>
+  <p>Checked on Tailscale 1.104.1. The app is a universal program (Intel and Apple silicon).</p>
+</footer>
+
+</div>
+</body>
+</html>
