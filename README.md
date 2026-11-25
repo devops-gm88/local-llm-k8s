@@ -3,7 +3,7 @@
 
 A single-node k3s cluster on a Mac serving a small open model behind a FastAPI gateway, with a measured benchmark and a break-even cost model.
 
-[![CI](https://github.com/devops-gm88/local-llm-k8s/actions/workflows/ci.yml/badge.svg)](https://github.com/devops-gm88/local-llm-k8s/actions/workflows/ci.yml) **12 tests** in CI run [42444867183](https://github.com/devops-gm88/local-llm-k8s/actions/runs/42444867183) - measured: **4,682.7 tokens/s** at 1 replica and 10 clients, CPU-only, against an API that is cheap below a stated volume
+[![CI](https://github.com/devops-gm88/local-llm-k8s/actions/workflows/ci.yml/badge.svg)](https://github.com/devops-gm88/local-llm-k8s/actions/workflows/ci.yml) **12 tests** in CI run [42444867183](https://github.com/devops-gm88/local-llm-k8s/actions/runs/42444867183) - measured: **104.8 output tokens/s** at 1 replica and 10 clients (p50 4.68 s, 0% errors), **107.1 tokens/s** best across the grid, CPU-only, against an API that is cheap below a stated volume
 
 ```bash
 make test
